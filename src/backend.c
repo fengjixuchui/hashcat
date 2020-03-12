@@ -369,7 +369,25 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
 
   OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
+  const int fd_stderr = fileno (stderr);
+
+  #ifndef DEBUG
+  const int stderr_bak = dup (fd_stderr);
+  #ifdef _WIN
+  const int tmp = open ("NUL", O_WRONLY);
+  #else
+  const int tmp = open ("/dev/null", O_WRONLY);
+  #endif
+  dup2 (tmp, fd_stderr);
+  close (tmp);
+  #endif
+
   const int CL_rc = ocl->clBuildProgram (program, 1, &device, NULL, NULL, NULL);
+
+  #ifndef DEBUG
+  dup2 (stderr_bak, fd_stderr);
+  close (stderr_bak);
+  #endif
 
   if (CL_rc != CL_SUCCESS)
   {
@@ -3643,14 +3661,14 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     const u32 iterationm = iteration % EXPECTED_ITERATIONS;
 
-    cl_int opencl_event_status;
-
-    size_t param_value_size_ret;
-
-    if (hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret) == -1) return -1;
-
     if (device_param->spin_damp > 0)
     {
+      cl_int opencl_event_status;
+
+      size_t param_value_size_ret;
+
+      if (hc_clGetEventInfo (hashcat_ctx, opencl_event, CL_EVENT_COMMAND_EXECUTION_STATUS, sizeof (opencl_event_status), &opencl_event_status, &param_value_size_ret) == -1) return -1;
+
       double spin_total = device_param->spin_damp;
 
       while (opencl_event_status != CL_COMPLETE)

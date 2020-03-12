@@ -638,7 +638,7 @@ typedef enum user_options_defaults
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
   SPEED_ONLY               = false,
-  SPIN_DAMP                = 8,
+  SPIN_DAMP                = 0,
   STATUS                   = false,
   STATUS_JSON              = false,
   STATUS_TIMER             = 10,
@@ -1655,6 +1655,8 @@ typedef struct dictstat
 
   char encoding_from[64];
   char encoding_to[64];
+
+  u8 hash_filename[16];
 
 } dictstat_t;
 
