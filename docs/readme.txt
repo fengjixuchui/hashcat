@@ -159,7 +159,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - NetNTLMv1 / NetNTLMv1+ESS
 - NetNTLMv2
 - Skype
-- Telegram client app passcode (SHA256)
+- Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)
+- Telegram Mobile App Passcode (SHA256)
 - PostgreSQL CRAM (MD5)
 - MySQL CRAM (SHA1)
 - RACF
@@ -285,6 +286,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, SCRYPT
 - MultiBit Classic .key (MD5)
+- MultiBit HD (scrypt)
 - 7-Zip
 - RAR3-hp
 - RAR5

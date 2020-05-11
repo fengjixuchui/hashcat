@@ -16,16 +16,17 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
-static const char *HASH_NAME      = "scrypt";
-static const u64   KERN_TYPE      = 8900;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
+static const char *HASH_NAME      = "MultiBit HD (scrypt)";
+static const u64   KERN_TYPE      = 22700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
+                                  | OPTS_TYPE_PT_UTF16BE
                                   | OPTS_TYPE_SELF_TEST_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "SCRYPT:1024:1:1:Mzg3MjYzNzYwMzE0NDE=:uM7P3Kg2X9En9KZPv3378YablKcuUoQ1mwunXdg3o1M=";
+static const char *ST_HASH        = "$multibit$2*2e311aa2cc5ec99f7073cacc8a2d1938*e3ad782e7f92d66a3cdfaec43a46be29*5d1cabd4f4a50ba125f88c47027fff9b";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -42,10 +43,14 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+static const char *SIGNATURE_MULTIBIT = "$multibit$";
+static const u32   SCRYPT_N           = 16384;
+static const u32   SCRYPT_R           =     8;
+static const u32   SCRYPT_P           =     1;
+
 // limit scrypt accel otherwise we hurt ourself when calculating the scrypt tmto
 // 16 is actually a bit low, we may need to change this depending on user response
 
-static const char *SIGNATURE_SCRYPT   = "SCRYPT";
 static const u32   SCRYPT_MAX_ACCEL   = 16;
 static const u32   SCRYPT_MAX_THREADS = 16;
 
@@ -109,8 +114,8 @@ u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   // we need to set the self-test hash settings to pass the self-test
   // the decoder for the self-test is called after this function
 
-  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : 1024;
-  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : 1;
+  const u32 scrypt_N = SCRYPT_N;
+  const u32 scrypt_r = SCRYPT_R;
 
   const u64 kernel_power_max = (u64)(device_param->device_processors * hashconfig->kernel_threads_max * hashconfig->kernel_accel_max);
 
@@ -209,21 +214,8 @@ u64 module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UN
   // we need to set the self-test hash settings to pass the self-test
   // the decoder for the self-test is called after this function
 
-  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : 1024;
-  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : 1;
-  const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : 1;
-
-  // we need to check that all hashes have the same scrypt settings
-
-  for (u32 i = 1; i < hashes->salts_cnt; i++)
-  {
-    if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
-     || (hashes->salts_buf[i].scrypt_r != scrypt_r)
-     || (hashes->salts_buf[i].scrypt_p != scrypt_p))
-    {
-      return -1;
-    }
-  }
+  const u32 scrypt_r = SCRYPT_R;
+  const u32 scrypt_p = SCRYPT_P;
 
   const u64 tmp_size = (u64)(128 * scrypt_r * scrypt_p);
 
@@ -237,9 +229,9 @@ bool module_jit_cache_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : 1024;
-  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : 1;
-  const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : 1;
+  const u32 scrypt_N = SCRYPT_N;
+  const u32 scrypt_r = SCRYPT_R;
+  const u32 scrypt_p = SCRYPT_P;
 
   const u64 extra_buffer_size = device_param->extra_buffer_size;
 
@@ -254,9 +246,9 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   char *jit_build_options = NULL;
 
   hc_asprintf (&jit_build_options, "-DSCRYPT_N=%u -DSCRYPT_R=%u -DSCRYPT_P=%u -DSCRYPT_TMTO=%" PRIu64 " -DSCRYPT_TMP_ELEM=%" PRIu64,
-    hashes->salts_buf[0].scrypt_N,
-    hashes->salts_buf[0].scrypt_r,
-    hashes->salts_buf[0].scrypt_p,
+    SCRYPT_N,
+    SCRYPT_R,
+    SCRYPT_P,
     scrypt_tmto_final,
     tmp_size / 16);
 
@@ -269,43 +261,36 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token_t token;
 
-  token.token_cnt  = 6;
+  token.token_cnt  = 5;
 
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SCRYPT;
+  token.signatures_buf[0] = SIGNATURE_MULTIBIT;
 
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
-  token.sep[0]     = ':';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.len_min[1] = 1;
-  token.len_max[1] = 6;
-  token.sep[1]     = ':';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len_max[1] = 1;
+  token.sep[1]     = '*';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[2] = 1;
-  token.len_max[2] = 6;
-  token.sep[2]     = ':';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len_min[2] = 32;
+  token.len_max[2] = 32;
+  token.sep[2]     = '*';
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[3] = 1;
-  token.len_max[3] = 6;
-  token.sep[3]     = ':';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.sep[3]     = '*';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[4] = 0;
-  token.len_max[4] = 45;
-  token.sep[4]     = ':';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
-  token.len_min[5] = 44;
-  token.len_max[5] = 44;
-  token.sep[5]     = ':';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
+  token.len[4]     = 32;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -313,59 +298,73 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // scrypt settings
 
-  const u8 *N_pos = token.buf[1];
-  const u8 *r_pos = token.buf[2];
-  const u8 *p_pos = token.buf[3];
+  salt->scrypt_N = SCRYPT_N;
+  salt->scrypt_r = SCRYPT_R;
+  salt->scrypt_p = SCRYPT_P;
 
-  salt->scrypt_N = hc_strtoul ((const char *) N_pos, NULL, 10);
-  salt->scrypt_r = hc_strtoul ((const char *) r_pos, NULL, 10);
-  salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
+  // version
 
-  // salt
+  const u8 *version_pos = token.buf[1];
 
-  const u8 *salt_pos = token.buf[4];
-  const int salt_len = token.len[4];
+  if (version_pos[0] != (u8) '2') return (PARSER_SIGNATURE_UNMATCHED);
 
-  u8 tmp_buf[33] = { 0 };
+  // IV
 
-  const int tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  const u8 *iv_pos = token.buf[2];
 
-  memcpy (salt->salt_buf, tmp_buf, tmp_len);
+  salt->salt_buf[ 0] = hex_to_u32 (iv_pos +  0);
+  salt->salt_buf[ 1] = hex_to_u32 (iv_pos +  8);
+  salt->salt_buf[ 2] = hex_to_u32 (iv_pos + 16);
+  salt->salt_buf[ 3] = hex_to_u32 (iv_pos + 24);
 
-  salt->salt_len  = tmp_len;
-  salt->salt_iter = 1;
+  // block1
 
-  // digest - base64 decode
+  const u8 *b1_pos = token.buf[3];
 
-  const u8 *hash_pos = token.buf[5];
-  const int hash_len = token.len[5];
+  salt->salt_buf[ 4] = hex_to_u32 (b1_pos +  0);
+  salt->salt_buf[ 5] = hex_to_u32 (b1_pos +  8);
+  salt->salt_buf[ 6] = hex_to_u32 (b1_pos + 16);
+  salt->salt_buf[ 7] = hex_to_u32 (b1_pos + 24);
 
-  memset (tmp_buf, 0, sizeof (tmp_buf));
+  // block2
 
-  base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  const u8 *b2_pos = token.buf[4];
 
-  memcpy (digest, tmp_buf, 32);
+  salt->salt_buf[ 8] = hex_to_u32 (b2_pos +  0);
+  salt->salt_buf[ 9] = hex_to_u32 (b2_pos +  8);
+  salt->salt_buf[10] = hex_to_u32 (b2_pos + 16);
+  salt->salt_buf[11] = hex_to_u32 (b2_pos + 24);
+
+  salt->salt_len  = 48;
+  salt->salt_iter =  1;
+
+  // fake digest:
+
+  digest[0] = salt->salt_buf[4];
+  digest[1] = salt->salt_buf[5];
+  digest[2] = salt->salt_buf[6];
+  digest[3] = salt->salt_buf[7];
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  char base64_salt[32] = { 0 };
-
-  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) base64_salt);
-
-  char base64_digest[64] = { 0 };
-
-  base64_encode (int_to_base64, (const u8 *) digest_buf, 32, (u8 *) base64_digest);
-
-  const int line_len = snprintf (line_buf, line_size, "%s:%u:%u:%u:%s:%s",
-    SIGNATURE_SCRYPT,
-    salt->scrypt_N,
-    salt->scrypt_r,
-    salt->scrypt_p,
-    base64_salt,
-    base64_digest);
+  const int line_len = snprintf (line_buf, line_size, "%s%u*%08x%08x%08x%08x*%08x%08x%08x%08x*%08x%08x%08x%08x",
+    SIGNATURE_MULTIBIT,
+    2,
+    byte_swap_32 (salt->salt_buf[ 0]),
+    byte_swap_32 (salt->salt_buf[ 1]),
+    byte_swap_32 (salt->salt_buf[ 2]),
+    byte_swap_32 (salt->salt_buf[ 3]),
+    byte_swap_32 (salt->salt_buf[ 4]),
+    byte_swap_32 (salt->salt_buf[ 5]),
+    byte_swap_32 (salt->salt_buf[ 6]),
+    byte_swap_32 (salt->salt_buf[ 7]),
+    byte_swap_32 (salt->salt_buf[ 8]),
+    byte_swap_32 (salt->salt_buf[ 9]),
+    byte_swap_32 (salt->salt_buf[10]),
+    byte_swap_32 (salt->salt_buf[11]));
 
   return line_len;
 }

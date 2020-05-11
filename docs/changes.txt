@@ -41,6 +41,7 @@
 - Added hash-mode: md5(sha1($pass).md5($pass).sha1($pass))
 - Added hash-mode: md5(sha1($salt).md5($pass))
 - Added hash-mode: MultiBit Classic .key (MD5)
+- Added hash-mode: MultiBit HD (scrypt)
 - Added hash-mode: MySQL $A$ (sha256crypt)
 - Added hash-mode: Open Document Format (ODF) 1.1 (SHA-1, Blowfish)
 - Added hash-mode: Open Document Format (ODF) 1.2 (SHA-256, AES)
@@ -64,7 +65,8 @@
 - Added hash-mode: sha256(sha256_bin($pass))
 - Added hash-mode: sha256(sha256($pass).$salt)
 - Added hash-mode: SolarWinds Orion
-- Added hash-mode: Telegram client app passcode (SHA256)
+- Added hash-mode: Telegram Desktop App Passcode (PBKDF2-HMAC-SHA1)
+- Added hash-mode: Telegram Mobile App Passcode (SHA256)
 - Added hash-mode: Web2py pbkdf2-sha512
 - Added hash-mode: WPA-PBKDF2-PMKID+EAPOL
 - Added hash-mode: WPA-PMK-PMKID+EAPOL
@@ -76,6 +78,7 @@
 - Fixed buffer overflow in build_plain() function
 - Fixed buffer overflow in mp_add_cs_buf() function
 - Fixed copy/paste error leading to invalid "Integer overflow detected in keyspace of mask" in attack-mode 6 and 7
+- Fixed calculation of brain-session ID, only the first hash of the hashset was taken into account
 - Fixed cracking multiple Office hashes (modes 9500, 9600) with the same salt
 - Fixed cracking of Blockchain, My Wallet (V1 and V2) hashes with unexpected decrypted data
 - Fixed cracking of Cisco-PIX and Cisco-ASA MD5 passwords in mask-attack mode if mask > length 16
