@@ -98,9 +98,12 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 
       if (alias_device->is_cuda == true) continue;
 
-      // this lets native OpenCL runtime survive over generic OpenCL runtime
+        // this lets native OpenCL runtime survive over generic OpenCL runtime
 
-      if (alias_device->opencl_platform_vendor_id == alias_device->opencl_device_vendor_id) continue;
+      if (alias_device->opencl_device_type & CL_DEVICE_TYPE_CPU)
+      {
+        if (alias_device->opencl_platform_vendor_id == alias_device->opencl_device_vendor_id) continue;
+      }
 
       alias_device->skipped = true;
 
@@ -6315,7 +6318,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (r == 2)
                 {
-                  if (version_maj >= 440)
+                  // nvidia 441.x looks ok
+
+                  if (version_maj == 440)
                   {
                     if (version_min >= 64)
                     {
