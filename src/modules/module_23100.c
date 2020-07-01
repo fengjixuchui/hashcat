@@ -10,22 +10,21 @@
 #include "convert.h"
 #include "shared.h"
 
-static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
-static const u32   DGST_POS0      = 1;
-static const u32   DGST_POS1      = 0;
-static const u32   DGST_POS2      = 3;
-static const u32   DGST_POS3      = 2;
-static const u32   DGST_SIZE      = DGST_SIZE_8_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
-static const char *HASH_NAME      = "BLAKE2b-512";
-static const u64   KERN_TYPE      = 600;
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS2      = 2;
+static const u32   DGST_POS3      = 3;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
+static const char *HASH_NAME      = "Apple Keychain";
+static const u64   KERN_TYPE      = 23100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_USES_BITS_64
-                                  | OPTI_TYPE_RAW_HASH;
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
-static const u32   SALT_TYPE      = SALT_TYPE_NONE;
+static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$BLAKE2$296c269e70ac5f0095e6fb47693480f0f7b97ccd0307f5c3bfa4df8f5ca5c9308a0e7108e80a0a9c0ebb715e8b7109b072046c6cd5e155b4cfd2f27216283b1e";
+static const char *ST_HASH        = "$keychain$*74cd1efd49e54a8fdc8750288801e09fa26a33b1*66001ad4e0498dc7*5a084b7314971b728cb551ac40b2e50b7b5bd8b8496b902efe7af07538863a45394ead8399ec581681f7416003c49cc7";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -42,80 +41,151 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-static const char *SIGNATURE_BLAKE2B = "$BLAKE2$";
+typedef struct keychain_tmp
+{
+  u32 ipad[5];
+  u32 opad[5];
+
+  u32 dgst[10];
+  u32 out [10];
+
+} keychain_tmp_t;
+
+typedef struct keychain
+{
+  u32 data[12];
+  u32 iv[2];
+
+} keychain_t;
+
+static const char *SIGNATURE_KEYCHAIN = "$keychain$";
+static const u32   ITERATION_KEYCHAIN = 1000;
+
+u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 esalt_size = (const u64) sizeof (keychain_t);
+
+  return esalt_size;
+}
+
+u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 tmp_size = (const u64) sizeof (keychain_tmp_t);
+
+  return tmp_size;
+}
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // this overrides the reductions of pw_max in case optimized kernel is selected
-  // IOW, even in optimized kernel mode it support length 64
+  // this overrides the reductions of PW_MAX in case optimized kernel is selected
+  // IOW, even in optimized kernel mode it support length 256
 
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  const u32 pw_max = (optimized_kernel == true) ? 64 : PW_MAX;
+  const u32 pw_max = PW_MAX;
 
   return pw_max;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  u64 *digest = (u64 *) digest_buf;
+  u32 *digest = (u32 *) digest_buf;
+
+  keychain_t *keychain = (keychain_t *) esalt_buf;
 
   token_t token;
 
-  token.token_cnt = 2;
+  token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_BLAKE2B;
+  token.signatures_buf[0] = SIGNATURE_KEYCHAIN;
 
-  token.len[0]  = 8;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_SIGNATURE;
+  token.sep[0]     = '*';
+  token.len_min[0] = 10;
+  token.len_max[0] = 10;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len[1]  = 128;
-  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_HEX;
+  token.sep[1]     = '*';
+  token.len_min[1] = 40;
+  token.len_max[1] = 40;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.sep[2]     = '*';
+  token.len_min[2] = 16;
+  token.len_max[2] = 16;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len[3]     = 96;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *hash_pos = token.buf[1];
+  // salt
 
-  digest[0] = hex_to_u64 (hash_pos +   0);
-  digest[1] = hex_to_u64 (hash_pos +  16);
-  digest[2] = hex_to_u64 (hash_pos +  32);
-  digest[3] = hex_to_u64 (hash_pos +  48);
-  digest[4] = hex_to_u64 (hash_pos +  64);
-  digest[5] = hex_to_u64 (hash_pos +  80);
-  digest[6] = hex_to_u64 (hash_pos +  96);
-  digest[7] = hex_to_u64 (hash_pos + 112);
+  const u8 *salt_pos = token.buf[1];
+        u8 *salt_buf = (u8 *) salt->salt_buf;
+
+  hex_decode (salt_pos, 40, salt_buf);
+
+  salt->salt_len  = 20;
+  salt->salt_iter = ITERATION_KEYCHAIN - 1;
+
+  // IV
+
+  const u8 *iv_pos = token.buf[2];
+        u8 *iv_buf = (u8 *) keychain->iv;
+
+  hex_decode (iv_pos, 16, iv_buf);
+
+  // data
+
+  const u8 *data_pos = token.buf[3];
+        u8 *data_buf = (u8 *) keychain->data;
+
+  hex_decode (data_pos, 96, data_buf);
+
+  // fake digest:
+
+  const u32 *data_ptr = (u32 *) data_buf;
+
+  digest[0] = data_ptr[0];
+  digest[1] = data_ptr[1];
+  digest[2] = data_ptr[2];
+  digest[3] = data_ptr[3];
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const u64 *digest = (const u64 *) digest_buf;
+  keychain_t *keychain = (keychain_t *) esalt_buf;
 
-  // we can not change anything in the original buffer, otherwise destroying sorting
-  // therefore create some local buffer
+  // iv
 
-  u8 *out_buf = (u8 *) line_buf;
+  u8 iv[17] = { 0 };
 
-  int out_len = strlen (SIGNATURE_BLAKE2B);
+  hex_encode ((u8 *) keychain->iv, 8, iv);
 
-  memcpy (out_buf, SIGNATURE_BLAKE2B, out_len);
+  // data
 
-  u64_to_hex (digest[0], out_buf + out_len); out_len += 16;
-  u64_to_hex (digest[1], out_buf + out_len); out_len += 16;
-  u64_to_hex (digest[2], out_buf + out_len); out_len += 16;
-  u64_to_hex (digest[3], out_buf + out_len); out_len += 16;
-  u64_to_hex (digest[4], out_buf + out_len); out_len += 16;
-  u64_to_hex (digest[5], out_buf + out_len); out_len += 16;
-  u64_to_hex (digest[6], out_buf + out_len); out_len += 16;
-  u64_to_hex (digest[7], out_buf + out_len); out_len += 16;
+  u8 data[97] = { 0 };
 
-  return out_len;
+  hex_encode ((u8 *) keychain->data, 48, data);
+
+  return snprintf (line_buf, line_size, "%s*%08x%08x%08x%08x%08x*%s*%s",
+    SIGNATURE_KEYCHAIN,
+    byte_swap_32 (salt->salt_buf[0]),
+    byte_swap_32 (salt->salt_buf[1]),
+    byte_swap_32 (salt->salt_buf[2]),
+    byte_swap_32 (salt->salt_buf[3]),
+    byte_swap_32 (salt->salt_buf[4]),
+    iv,
+    data
+  );
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -136,7 +206,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = MODULE_DEFAULT;
+  module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
@@ -186,7 +256,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_separator                = MODULE_DEFAULT;
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
-  module_ctx->module_tmp_size                 = MODULE_DEFAULT;
+  module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
