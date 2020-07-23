@@ -4,14 +4,16 @@
 ## Algorithms
 ##
 
-- Added pure kernels for hash-mode 600 (BLAKE2b-512)
 - Added hash-mode: Apple Keychain
+- Added hash-mode: XMPP SCRAM
 
 ##
 ## Bugs
 ##
 
 - Fixed alias detection with additional processor core count check
+- Fixed false negatives in hash-mode 10901 if hash-mode 9200, 10000, 10900 or 20300 was used to compile the kernel binary
+- Fixed integer overflow for large masks in -a 6 attack mode
 - Fixed maximum password length in modules of hash-modes 600, 7800, 7801 and 9900
 - Fixed non-zero status code when using --stdout
 - Fixed uninitialized value in bitsliced DES kernel (BF mode only) leading to false negatives
@@ -20,7 +22,23 @@
 ## Improvements
 ##
 
+- Compile macOS: Fixed makefile target 'clean' to correctly remove *.dSYM folders
+- Compile ZLIB: Fixed makefile include paths in case USE_SYSTEM_ZLIB is used
+- OpenCL Kernels: Added datatypes to literals of enum costants
+- OpenCL Kernels: Added pure kernels for hash-mode 600 (BLAKE2b-512)
+- OpenCL Runtime: Add some unstable warnings for some SHA512 based algorithms on AMD GPU on macOS
 - OpenCL Runtime: Reinterpret return code CL_DEVICE_NOT_FOUND from clGetDeviceIDs() as non-fatal
+
+##
+## Technical
+##
+
+- Backend: Changed the maximum number of compute devices from 64 to 128
+- Tests: Improved tests for hash-mode 11300 (Bitcoin/Litecoin wallet.dat)
+- Tests: Improved tests for hash-mode 13200 (AxCrypt)
+- Tests: Improved tests for hash-mode 13600 (WinZip)
+- Tests: Improved tests for hash-mode 16400 (CRAM-MD5 Dovecot)
+- Tests: Improved tests for hash-mode 16800 (WPA-PMKID-PBKDF2)
 
 * changes v5.1.0 -> v6.0.0
 
