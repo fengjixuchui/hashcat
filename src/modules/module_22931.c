@@ -11,25 +11,20 @@
 #include "shared.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
-static const u32   DGST_POS0      = 3;
-static const u32   DGST_POS1      = 4;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
-static const u32   DGST_POS3      = 1;
-static const u32   DGST_SIZE      = DGST_SIZE_4_5;
+static const u32   DGST_POS3      = 3;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PRIVATE_KEY;
-static const char *HASH_NAME      = "JKS Java Key Store Private Keys (SHA1)";
-static const u64   KERN_TYPE      = 15500;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_PRECOMPUTE_INIT
-                                  | OPTI_TYPE_NOT_ITERATED
-                                  | OPTI_TYPE_APPENDED_SALT;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
-                                  | OPTS_TYPE_PT_UTF16BE
-                                  | OPTS_TYPE_ST_ADD80
-                                  | OPTS_TYPE_ST_ADDBITS15;
+static const char *HASH_NAME      = "RSA/DSA/EC/OPENSSH Private Keys ($1, $3$)";
+static const u64   KERN_TYPE      = 22931;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_SUGGEST_KG;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$jksprivk$*338BD2FBEBA7B3EF198A4CBFC6E18AFF1E229367*5225850113575146134463704406336350011656*D5253EB151EB92DC73E542D8C0A4D7A848A5B0C0E370E625E6547D4E6F23416FC85A27BC295731B8021CDFBD003551C66C434FFBC87DACAD1FDF39022320034A2F86E779F2B1B3325428A666518FA89507AD63E15FD9C57B9E36EF5B642A2F448A9A3F09B79AD93D65F46B8692CD07539FD140146F8F219DC262971AF019E18EDC16C3C240569E1673F4D98BC818CCF28298D5A7BFF038A663DD10FE5E48643C3217C237D342164E2D41EF15075431FBD5B34800E5AE7EB80FAA5AE9982A55F35379AA7B31217E7F1C5F1964A15024A305AE4B3981FE1C80C163BC38ECA5581F11867E5C34C5D124D0367B3737E5E5BB14D2CAB26A698C8DAAB755C82BA6B823BCAECDD4A89C831651ACE5A6029FD0D3515C5D1D53AD8B9062CE8C445373862035CBBF60D490CA2E4975EE6E0358EC32E871FAB15347E3032E21F30F543BAAB01D779BA833CA0B8C7591B42C7C59A8FDD46D7DECEC0E91ADBF331177605E7830ABED62FAD7D5D806D8EFD01C38765940B7F97168FC72C39BF4C98F944FFC310CA8F4EB1D0F960F352CC5E2BB23A1EB221072A5471EDA2CE81C04595B8D37088CFB5C14F6A4A881AD12125DEFBB8154EB4C130AB7FD9933FD36DF1A6A26B51AB169866788678FCED988C8E017CA84354F487A5508210181AFB8B3AD0753E3E28BE674DFBD4E4FBDFD1E30D592F4EA3A77A2F0F5CF9A175DBC590EF5D42971A39918F12B92DCD8BFD56BE9A3459856B5587603C7B53062663A4C8894BBC9894FB1663BF30F32D907664328138B7A50EAC7F8E3183D74562A5C90FE1889AC4C5FE43EBEB8974563B6682F92591ECA4FA0DA72236C3851DA102DB6BA0CC07BFD32F7E962AB0EDCF4A8DEA6525174F5BB5C021E2A9A3F7F761E9CA90B6E27FB7E55CD91DA184FAC5E534E8AD25314C56CE5796506A0CA70881782F9C5147D87705065D68BD67D2B0344205BA6445D562273690004CA5A303274FB283A75F49BA968D7947943AA98F2AF9CB8253B425B86225E7395A331AC4CB1B1700C64D4F458D5D642C54148AE6DA41D9E26657D331B157D76042C2CF3057B83997C23D8BF68FB3C7337CAFB8B324AD0DF7A80B554B4D7F9AD6ED527E7932F1741A573C152A41610F6517E3F4A3BC6B66685871A7CE3795C559BD47CDB8E34CB2C1DFE980518D79E2078C258C54F312EB38609F640E7DC013E0F2A16A25BB5971882B4308D27930CA99FEC231AE927B62215A1B56098C362B7F20593953B29428681875070E84BF5B60BEA3948127151634123DA77C814AAD54CE10905763C8C19BC191C0C40458C809402E1957C4C05C4EAE27576B2D30593F7FDCC9A248DB5DB23CF2FA22A92C016090F611690BF0AB5B8B2866ED25F345EFE85DF3311C9E91C37CEE709CF16E7CB09D01BECD2961D094C02D42EC85BF47FAB1B67A13B9A1741C15F7156D57A71BFFABB03B71E69707913A5C136B3D69CE3F71ABFE376F0A21D723FFA2E60AC180689D3E8AF4348C9F555CD897387327FC8BA2B9C51A7298547E556A11A60441EF5331A1BFB847A3D23DD9F7C50E636A2C6309BC82E1A8852F5A8569B6D93*14*78D6A2424484CF5149932B7EA8BF*test";
+static const char *ST_HASH        = "$sshng$1$16$14987802644369864387956120434709$1232$ffa56007ed83e49fdc439c776a9dec9656521385073bf71931a2c6503c93917e560cc98940c8cdcf2c709265e9ba20783a3bacc63423a98e40ea8999182613e1f5a80084719ca0e5c390299de1ea947df41f2ff1489bddfe13c6128612c5c82b7fc1ef5105ea28adda7b415729c66fb6cbc4b6b51ef518f74e1971f88e0cfabd69e8c4270678e360149ce15716fef4736df296a20d2607ef269a3c69896fc423683d6057e00064f84e04caf4d4663b51b307cfb1d1dbd6b3bf67764a08847c7b83fa5544e6a1e950f16acda8c8bac30675bc3cea9c7e06790ddc7cd1e4177b93bdd0d9edf9cdceb4a4444b437d967acdb92274a7b10d9cd1073ab4e9b5dd468aabe1f40a02b2e51f19840798c2311b625037eba5f0a0256638b42577385f4d4c730a9cedf4e244ce74656a21bf16756857866433dbb1feff9c4323d234d4235b72ed5a3adc3a6c9bae373472d64b7882d1762911326f330cb42d8ab7931f1ad2de56c4e6e8a6e838108cf9a2728ffa356796f63d94723b1d0aad5b4fcea16ab0730e7553804ad9ffb6ecdbdd925fca05ca1c076ed09a30df8a5add44a43c36b92248dc8dd4605bc2ee557e6e4438abf9ea7d047f764c55a5ba46a41719b9c55e54ad5fbfce6a89b9283c163d8464ecdda5aaf113d038b659950b8c79e87abad019eb77535cc8e63f760a4c87ca344a563475361766df718519b1b7e4b3ab511952fcc9b011f1d8971f9261509139b739afcc2c9acd006ee714dffc8c9a4df0d54770d70c8c28c27cdf9ee7301fd64530ef0ec3eb044fb891b193a7aaa9158625ed9f5a842c86ed09e5377d90a69aea4c5fd321bc3ac9b2a0d34509a5de0b72ac3f81304895c4381e01136b1e8654cec20c220c0ac6a1300f031ffc68ddeab554279024c122589b91556feef394a1663b42fb8460af5fe881cb1cd4984b84be75125411b1d3fc236dd81f99b872aad511d28944e91d2f8853f11be85b6930a15b4d0b3d215d76416970ade5726979c1d737980fb68ecb03d1196a69f4013dd2e296a75a4c69664b0162cb8b22af18c536a8ce51f39b1282f2fe07e6b034627f075cfb20dffee62817aabeea60befea1ac93ba608d957e4030e41be7bc55275bc4037300f6ba736370eb7c9240629853c95f9304b7ffd26a10d55ae735fa943e29aa9ed437b61955fc16cde9ea7a3658d831bdbc38befa45cec80da9ccb6d21da83ff666e32d7c5c0ca0ade2cd685407ee701c1c707fc5c80b22f3af42ac1353fcdc09a459086434db7c78792decdc91572363478a14d1256346a9ac6336b8183ed6252106aa546dd092c0bbb464cdb44ae165d67d1be135877587de3bbbd02b5ef6473f125366f6dae0536ebbe18ab8de8ce2ef3d26d6dd400319e7d07ae276b081e94446e9a72877cf23e9ba52406b1842e3a0dcf7bbdc63a1336b894be475613cc917eb47724f64e621bfc3053d7423e3e2fb141a3368dc8881fa20e040e9a6bc2e7348e923e4c20e506566b8663bf7d557e792cbe4adffcf9c520d58565d77f6bf1c9ed5fa3209f8047765d01b9c264e97a3ef9ff90766ad69a4f508041e168bf0f7419e54ec88bdc4c858231cdba60774a27cc459cd65b46e26a620a43033788c6e2ee8916670568d6e6c700515f2cbca3eef62028ce75245cf8f99cd6e0ba7839a7b335c797a06ff80571950ebec2fccebb89265025b3250e4a5c9c3a62f471324556fc4db044cebe97f62c86913";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -46,231 +41,156 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct jks_sha1
+typedef struct pem
 {
-  u32 checksum[5];
-  u32 iv[5];
-  u32 enc_key_buf[4096];
-  u32 enc_key_len;
-  u32 der[5];
-  u32 alias[16];
+  u32 data_buf[16384];
+  int data_len;
 
-} jks_sha1_t;
+  int cipher;
 
-static const char *SIGNATURE_JKS_SHA1 = "$jksprivk$";
+} pem_t;
+
+static const char *SIGNATURE_SSHNG = "$sshng$";
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (jks_sha1_t);
+  const u64 esalt_size = (const u64) sizeof (pem_t);
 
   return esalt_size;
-}
-
-u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  u32 pw_max = PW_MAX;
-
-  if (optimized_kernel == true)
-  {
-    pw_max = 16;
-  }
-
-  return pw_max;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
-  jks_sha1_t *jks_sha1 = (jks_sha1_t *) esalt_buf;
+  pem_t *pem = (pem_t *) esalt_buf;
 
   token_t token;
 
-  token.token_cnt  = 7;
+  token.token_cnt  = 6;
 
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_JKS_SHA1;
+  token.signatures_buf[0] = SIGNATURE_SSHNG;
 
-  token.sep[0]     = '*';
-  token.len_min[0] = 10;
-  token.len_max[0] = 10;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 7;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = '*';
-  token.len_min[1] = 40;
-  token.len_max[1] = 40;
+  token.sep[1]     = '$';
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = '*';
-  token.len_min[2] = 40;
-  token.len_max[2] = 40;
+  token.sep[2]     = '$';
+  token.len_min[2] = 2;
+  token.len_max[2] = 2;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[3]     = '*';
-  token.len_min[3] = 2;
-  token.len_max[3] = 16384;
+  token.sep[3]     = '$';
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[4]     = '*';
-  token.len_min[4] = 2;
-  token.len_max[4] = 2;
+  token.sep[4]     = '$';
+  token.len_min[4] = 1;
+  token.len_max[4] = 8;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[5]     = '*';
-  token.len_min[5] = 28;
-  token.len_max[5] = 28;
+  token.sep[5]     = '$';
+  token.len_min[5] = 64;    // 64 = minimum size (32 byte) to avoid out of boundary read in kernel
+  token.len_max[5] = 65536; // 65536 = maximum asn.1 size fitting into 2 byte length integer
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
-
-  token.sep[6]     = '*';
-  token.len_min[6] = 0;
-  token.len_max[6] = 64;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  // checksum
+  // cipher
 
-  const u8 *checksum_pos = token.buf[1];
+  const u8 *cipher_pos = token.buf[1];
 
-  jks_sha1->checksum[0] = hex_to_u32 ((const u8 *) &checksum_pos[ 0]);
-  jks_sha1->checksum[1] = hex_to_u32 ((const u8 *) &checksum_pos[ 8]);
-  jks_sha1->checksum[2] = hex_to_u32 ((const u8 *) &checksum_pos[16]);
-  jks_sha1->checksum[3] = hex_to_u32 ((const u8 *) &checksum_pos[24]);
-  jks_sha1->checksum[4] = hex_to_u32 ((const u8 *) &checksum_pos[32]);
+  int cipher = hc_strtoul ((const char *) cipher_pos, NULL, 10);
 
-  // iv
+  if ((cipher != 1) && (cipher != 3)) return (PARSER_CIPHER);
 
-  const u8 *iv_pos = token.buf[2];
+  pem->cipher = cipher;
 
-  jks_sha1->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  jks_sha1->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  jks_sha1->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  jks_sha1->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
-  jks_sha1->iv[4] = hex_to_u32 ((const u8 *) &iv_pos[32]);
+  // IV length
 
-  // enc_key
+  const u8 *iv_len_verify_pos = token.buf[2];
 
-  const u8 *enc_key_pos = token.buf[3];
-  const int enc_key_len = token.len[3];
+  const int iv_len_verify = hc_strtoul ((const char *) iv_len_verify_pos, NULL, 10);
 
-  u8 *enc_key_buf = (u8 *) jks_sha1->enc_key_buf;
+  if (iv_len_verify != 16) return (PARSER_SALT_LENGTH);
 
-  for (int i = 0, j = 0; j < enc_key_len; i += 1, j += 2)
-  {
-    enc_key_buf[i] = hex_to_u8 ((const u8 *) &enc_key_pos[j]);
+  // IV buffer
 
-    jks_sha1->enc_key_len++;
-  }
+  const u8 *iv_pos = token.buf[3];
+  const int iv_len = token.len[3];
 
-  // der1
+  if (iv_len != 32) return (PARSER_SALT_LENGTH);
 
-  const u8 *der1_pos = token.buf[4];
+  salt->salt_buf[0] = hex_to_u32 (iv_pos +  0);
+  salt->salt_buf[1] = hex_to_u32 (iv_pos +  8);
+  salt->salt_buf[2] = hex_to_u32 (iv_pos + 16);
+  salt->salt_buf[3] = hex_to_u32 (iv_pos + 24);
 
-  u8 *der = (u8 *) jks_sha1->der;
+  salt->salt_len = 16;
 
-  der[0] = hex_to_u8 ((const u8 *) &der1_pos[0]);
+  // data length
 
-  // der2
+  const u8 *data_len_verify_pos = token.buf[4];
 
-  const u8 *der2_pos = token.buf[5];
+  const int data_len_verify = hc_strtoul ((const char *) data_len_verify_pos, NULL, 10);
 
-  for (int i = 6, j = 0; j < 28; i += 1, j += 2)
-  {
-    der[i] = hex_to_u8 ((const u8 *) &der2_pos[j]);
-  }
+  // data
 
-  der[1] = 0;
-  der[2] = 0;
-  der[3] = 0;
-  der[4] = 0;
-  der[5] = 0;
+  const u8 *data_pos = token.buf[5];
+  const int data_len = token.len[5];
 
-  // alias
+  pem->data_len = hex_decode (data_pos, data_len, (u8 *) pem->data_buf);
 
-  memcpy ((char *) jks_sha1->alias, (const char *) token.buf[6], token.len[6]);
+  if (data_len_verify != pem->data_len) return (PARSER_HASH_LENGTH);
 
-  // fake salt
+  // data has to be a multiple of cipher block size
 
-  salt->salt_buf[0] = jks_sha1->iv[0];
-  salt->salt_buf[1] = jks_sha1->iv[1];
-  salt->salt_buf[2] = jks_sha1->iv[2];
-  salt->salt_buf[3] = jks_sha1->iv[3];
-  salt->salt_buf[4] = jks_sha1->iv[4];
+  if (pem->data_len % 16) return (PARSER_HASH_LENGTH);
 
-  salt->salt_len = 20;
+  // hash
 
-  // fake digest
-
-  digest[0] = byte_swap_32 (jks_sha1->der[0]);
-  digest[1] = byte_swap_32 (jks_sha1->der[1]);
-  digest[2] = byte_swap_32 (jks_sha1->der[2]);
-  digest[3] = byte_swap_32 (jks_sha1->der[3]);
-  digest[4] = byte_swap_32 (jks_sha1->der[4]);
+  digest[0] = pem->data_buf[0];
+  digest[1] = pem->data_buf[1];
+  digest[2] = pem->data_buf[2];
+  digest[3] = pem->data_buf[3];
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const jks_sha1_t *jks_sha1 = (const jks_sha1_t *) esalt_buf;
+  pem_t *pem = (pem_t *) esalt_buf;
 
-  char enc_key[16384 + 1] = { 0 };
+  u8 *out_buf = (u8 *) line_buf;
 
-  u8 *ptr = (u8 *) jks_sha1->enc_key_buf;
+  int out_len = 0;
 
-  for (u32 i = 0, j = 0; i < jks_sha1->enc_key_len; i += 1, j += 2)
-  {
-    sprintf (enc_key + j, "%02X", ptr[i]);
-  }
+  out_len = snprintf ((char *) out_buf, line_size, "%s%d$16$%08x%08x%08x%08x$%d$",
+    SIGNATURE_SSHNG,
+    pem->cipher,
+    byte_swap_32 (salt->salt_buf[0]),
+    byte_swap_32 (salt->salt_buf[1]),
+    byte_swap_32 (salt->salt_buf[2]),
+    byte_swap_32 (salt->salt_buf[3]),
+    pem->data_len);
 
-  u8 *der = (u8 *) jks_sha1->der;
+  out_len += hex_encode ((const u8 *) pem->data_buf, pem->data_len, (u8 *) out_buf + out_len);
 
-  char alias[65] = { 0 };
-
-  memcpy (alias, (char *) jks_sha1->alias, 64);
-
-  const int line_len = snprintf (line_buf, line_size, "%s*%08X%08X%08X%08X%08X*%08X%08X%08X%08X%08X*%s*%02X*%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X*%s",
-    SIGNATURE_JKS_SHA1,
-    byte_swap_32 (jks_sha1->checksum[0]),
-    byte_swap_32 (jks_sha1->checksum[1]),
-    byte_swap_32 (jks_sha1->checksum[2]),
-    byte_swap_32 (jks_sha1->checksum[3]),
-    byte_swap_32 (jks_sha1->checksum[4]),
-    byte_swap_32 (jks_sha1->iv[0]),
-    byte_swap_32 (jks_sha1->iv[1]),
-    byte_swap_32 (jks_sha1->iv[2]),
-    byte_swap_32 (jks_sha1->iv[3]),
-    byte_swap_32 (jks_sha1->iv[4]),
-    enc_key,
-    der[ 0],
-    der[ 6],
-    der[ 7],
-    der[ 8],
-    der[ 9],
-    der[10],
-    der[11],
-    der[12],
-    der[13],
-    der[14],
-    der[15],
-    der[16],
-    der[17],
-    der[18],
-    der[19],
-    alias
-  );
-
-  return line_len;
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -333,7 +253,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
-  module_ctx->module_pw_max                   = module_pw_max;
+  module_ctx->module_pw_max                   = MODULE_DEFAULT;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
