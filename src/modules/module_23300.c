@@ -11,21 +11,21 @@
 #include "shared.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
-static const u32   DGST_POS0      = 14;
-static const u32   DGST_POS1      = 15;
-static const u32   DGST_POS2      = 6;
-static const u32   DGST_POS3      = 7;
-static const u32   DGST_SIZE      = DGST_SIZE_8_8;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_EAS;
-static const char *HASH_NAME      = "SolarWinds Orion";
-static const u64   KERN_TYPE      = 21500;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS2      = 2;
+static const u32   DGST_POS3      = 3;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_DOCUMENTS;
+static const char *HASH_NAME      = "Apple iWork";
+static const u64   KERN_TYPE      = 23300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$solarwinds$0$admin$fj4EBQewCQUZ7IYHl0qL8uj9kQSBb3m7N4u0crkKK0Uj9rbbAnSrBZMXO7oWx9KqL3sCzwncvPZ9hyDV9QCFTg==";
+static const char *ST_HASH        = "$iwork$2$1$1$4000$b31b7320d1e7a5ee$01f54d6f9e5090eb16fef2b05f8242bc$69561c985268326b7353fb22c3685a378341127557bd2bbea1bd10afb31f2127344707b662a2c29480c32b8b93dea0538327f604e5aa8733be83af25f370f7ac";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -42,52 +42,38 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct solarwinds_tmp
+typedef struct iwork_tmp
 {
-  u32  ipad[5];
-  u32  opad[5];
+  u32 ipad[5];
+  u32 opad[5];
 
-  u32  dgst[260];
-  u32  out[260];
+  u32 dgst[5];
+  u32 out[5];
 
-} solarwinds_tmp_t;
+} iwork_tmp_t;
 
-typedef struct solarwinds
+typedef struct iwork
 {
-  u32 salt_buf[64 + 1];
+  u32 iv[4];
+  u32 data[16];
 
-} solarwinds_t;
+} iwork_t;
 
-static const u32 ROUNDS_SOLARWINDS_ORION = 1000;
+static const char *SIGNATURE_IWORK  = "$iwork$";
+static const u32   FORMAT_NUM_IWORK = 1;
 
-static const char *SIGNATURE_SOLARWINDS_ORION = "$solarwinds$0$";
-
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    // self-test failed
-    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-    {
-      return true;
-    }
-  }
+  const u64 tmp_size = (const u64) sizeof (iwork_tmp_t);
 
-  return false;
+  return tmp_size;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (solarwinds_t);
+  const u64 esalt_size = (const u64) sizeof (iwork_t);
 
   return esalt_size;
-}
-
-u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 tmp_size = (const u64) sizeof (solarwinds_tmp_t);
-
-  return tmp_size;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -102,124 +88,169 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  u64 *digest = (u64 *) digest_buf;
+  u32 *digest = (u32 *) digest_buf;
 
-  solarwinds_t *solarwinds = (solarwinds_t *) esalt_buf;
+  iwork_t *iwork = (iwork_t *) esalt_buf;
 
   token_t token;
 
-  token.token_cnt  = 3;
+  token.token_cnt  = 8;
 
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_SOLARWINDS_ORION;
+  token.signatures_buf[0] = SIGNATURE_IWORK;
 
-  token.len[0]     = 14;
+  token.len[0]     = 7;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
+  token.len_min[1] = 1;
+  token.len_max[1] = 1;
   token.sep[1]     = '$';
-  token.len_min[1] = 0;
-  token.len_max[1] = 256;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
+  token.len_min[2] = 1;
+  token.len_max[2] = 1;
   token.sep[2]     = '$';
-  token.len_min[2] = 88;
-  token.len_max[2] = 88;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[3] = 1;
+  token.len_max[3] = 1;
+  token.sep[3]     = '$';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[4] = 4;
+  token.len_max[4] = 6;
+  token.sep[4]     = '$';
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len_min[5] = 16;
+  token.len_max[5] = 32;
+  token.sep[5]     = '$';
+  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len_min[6] = 32;
+  token.len_max[6] = 32;
+  token.sep[6]     = '$';
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.len[7]     = 128;
+  token.attr[7]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  // iter
+  const u8 *hash_ver_pos   = token.buf[1];
+  const u8 *file_ver_pos   = token.buf[2];
+  const u8 *format_ver_pos = token.buf[3];
 
-  salt->salt_iter = ROUNDS_SOLARWINDS_ORION - 1;
+  const u32 hash_ver   = hc_strtoul ((const char *) hash_ver_pos,   NULL, 10);
+  const u32 file_ver   = hc_strtoul ((const char *) file_ver_pos,   NULL, 10);
+  const u32 format_ver = hc_strtoul ((const char *) format_ver_pos, NULL, 10);
 
-  // save original salt for encode function
-  // this is the only reason why we have an esalt in this hash-mode
+  if (format_ver != FORMAT_NUM_IWORK) return (PARSER_SALT_VALUE);
 
-  const char *salt_pos = (char *) token.buf[1];
-  const int   salt_len = token.len[1];
+  if ((hash_ver != 1) && (hash_ver != 2)) return (PARSER_SALT_VALUE);
+  if ((file_ver != 1) && (file_ver != 2)) return (PARSER_SALT_VALUE);
 
-  memcpy (solarwinds->salt_buf, salt_pos, salt_len);
+  salt->salt_sign[0] = hash_ver;
+  salt->salt_sign[1] = file_ver;
 
-  // for pbkdf2 salt we need to do hash-mode specific modifications
+  const u8 *iter_pos = token.buf[4];
 
-  #define FIXED_SALT_LEN 8
+  const u32 iterations = hc_strtoul ((const char *) iter_pos, NULL, 10);
 
-  char custom_salt[FIXED_SALT_LEN];
+  if (iterations <   1000) return (PARSER_SALT_ITERATION);
+  if (iterations > 999999) return (PARSER_SALT_ITERATION);
 
-  memcpy (custom_salt, salt_pos, MIN (FIXED_SALT_LEN, salt_len));
+  salt->salt_iter = iterations - 1;
 
-  if (salt_len < FIXED_SALT_LEN)
-  {
-    static const char *SALT_PADDING = "1244352345234";
+  // salt
 
-    memcpy (custom_salt + salt_len, SALT_PADDING, FIXED_SALT_LEN - salt_len);
-  }
+  const u8 *salt_pos = token.buf[5];
+  const int salt_len = token.len[5];
 
-  lowercase ((u8 *) custom_salt, FIXED_SALT_LEN);
+  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
-  memcpy (salt->salt_buf, custom_salt, FIXED_SALT_LEN);
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
-  salt->salt_len = FIXED_SALT_LEN;
+  if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
-  // hash
+  // IV
 
-  const u8 *hash_pos = token.buf[2];
-  const int hash_len = token.len[2];
+  const u8 *iv_pos = token.buf[6];
+  const int iv_len = token.len[6];
 
-  u8  tmp_buf[256];
+  hex_decode (iv_pos, iv_len, (u8 *) iwork->iv);
 
-  memset (tmp_buf, 0, sizeof (tmp_buf));
+  // data
 
-  int tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
+  const u8 *data_pos = token.buf[7];
+  const int data_len = token.len[7];
 
-  if (tmp_len < 64) return (PARSER_HASH_LENGTH);
+  hex_decode (data_pos, data_len, (u8 *) iwork->data);
 
-  memcpy (digest, tmp_buf, tmp_len);
+  // fake digest
 
-  digest[0] = byte_swap_64 (digest[0]);
-  digest[1] = byte_swap_64 (digest[1]);
-  digest[2] = byte_swap_64 (digest[2]);
-  digest[3] = byte_swap_64 (digest[3]);
-  digest[4] = byte_swap_64 (digest[4]);
-  digest[5] = byte_swap_64 (digest[5]);
-  digest[6] = byte_swap_64 (digest[6]);
-  digest[7] = byte_swap_64 (digest[7]);
+  digest[0] = iwork->data[0];
+  digest[1] = iwork->data[1];
+  digest[2] = iwork->data[2];
+  digest[3] = iwork->data[3];
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const u64 *digest = (u64 *) digest_buf;
+  const iwork_t *iwork = (const iwork_t *) esalt_buf;
 
-  const solarwinds_t *solarwinds = (const solarwinds_t *) esalt_buf;
+  // salt
 
-  // hash
+  u32 tmp_salt[4] = { 0 };
 
-  u64 tmp[9];
+  tmp_salt[0] = byte_swap_32 (salt->salt_buf[0]);
+  tmp_salt[1] = byte_swap_32 (salt->salt_buf[1]);
+  tmp_salt[2] = byte_swap_32 (salt->salt_buf[2]);
+  tmp_salt[3] = byte_swap_32 (salt->salt_buf[3]);
 
-  tmp[0] = byte_swap_64 (digest[0]);
-  tmp[1] = byte_swap_64 (digest[1]);
-  tmp[2] = byte_swap_64 (digest[2]);
-  tmp[3] = byte_swap_64 (digest[3]);
-  tmp[4] = byte_swap_64 (digest[4]);
-  tmp[5] = byte_swap_64 (digest[5]);
-  tmp[6] = byte_swap_64 (digest[6]);
-  tmp[7] = byte_swap_64 (digest[7]);
-  tmp[8] = 0;
+  char salt_hex[33] = { 0 };
 
-  char hash_enc[256] = { 0 };
+  generic_salt_encode (hashconfig, (const u8 *) tmp_salt, (const int) salt->salt_len, (u8 *) salt_hex);
 
-  base64_encode (int_to_base64, (const u8 *) tmp, 64, (u8 *) hash_enc);
+  // iv
 
-  // output
-  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_SOLARWINDS_ORION, (const char *) solarwinds->salt_buf, hash_enc);
+  u8 iv_hex[33] = { 0 };
 
-  return line_len;
+  hex_encode ((u8 *) iwork->iv, 16, iv_hex);
+
+  // data
+
+  u8 data_hex[129] = { 0 };
+
+  hex_encode ((u8 *) iwork->data, 64, data_hex);
+
+  int out_len = snprintf (line_buf, line_size, "%s%u$%u$%u$%u$%s$%s$%s",
+    SIGNATURE_IWORK,
+    salt->salt_sign[0],
+    salt->salt_sign[1],
+    FORMAT_NUM_IWORK,
+    salt->salt_iter + 1,
+    salt_hex,
+    iv_hex,
+    data_hex
+  );
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -291,6 +322,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
