@@ -274,9 +274,10 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Apple Keychain
 - Apple Secure Notes
 - JKS Java Key Store Private Keys (SHA1)
-- RSA/DSA/EC/OPENSSH Private Keys
+- RSA/DSA/EC/OpenSSH Private Keys
 - 1Password, agilekeychain
 - 1Password, cloudkeychain
+- Bitwarden
 - Password Safe v2
 - Password Safe v3
 - LastPass + LastPass sniffed
@@ -310,6 +311,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Android Backup
 - AxCrypt 1
 - AxCrypt 1 in-memory SHA1
+- AxCrypt 2 AES-128
+- AxCrypt 2 AES-256
 - WBB3 (Woltlab Burning Board)
 - vBulletin < v3.8.5
 - vBulletin >= v3.8.5
