@@ -103,6 +103,8 @@ typedef enum loglevel
 
 typedef enum event_identifier
 {
+  EVENT_AUTODETECT_FINISHED       = 0x00000100,
+  EVENT_AUTODETECT_STARTING       = 0x00000101,
   EVENT_AUTOTUNE_FINISHED         = 0x00000000,
   EVENT_AUTOTUNE_STARTING         = 0x00000001,
   EVENT_BITMAP_INIT_POST          = 0x00000010,
@@ -209,6 +211,8 @@ typedef enum status_rc
   STATUS_ABORTED_CHECKPOINT = 10,
   STATUS_ABORTED_RUNTIME    = 11,
   STATUS_ERROR              = 13,
+  STATUS_ABORTED_FINISH     = 14,
+  STATUS_AUTODETECT         = 16,
 
 } status_rc_t;
 
@@ -239,6 +243,7 @@ typedef enum attack_mode
   ATTACK_MODE_TABLE     = 5,
   ATTACK_MODE_HYBRID1   = 6,
   ATTACK_MODE_HYBRID2   = 7,
+  ATTACK_MODE_ASSOCIATION   = 9,
   ATTACK_MODE_NONE      = 100
 
 } attack_mode_t;
@@ -256,12 +261,14 @@ typedef enum kern_run
 {
   KERN_RUN_1      = 1000,
   KERN_RUN_12     = 1500,
+  KERN_RUN_2P     = 1999,
   KERN_RUN_2      = 2000,
   KERN_RUN_2E     = 2001,
   KERN_RUN_23     = 2500,
   KERN_RUN_3      = 3000,
   KERN_RUN_4      = 4000,
   KERN_RUN_INIT2  = 5000,
+  KERN_RUN_LOOP2P = 5999,
   KERN_RUN_LOOP2  = 6000,
   KERN_RUN_AUX1   = 7001,
   KERN_RUN_AUX2   = 7002,
@@ -411,26 +418,35 @@ typedef enum opts_type
   OPTS_TYPE_ST_BASE64         = (1ULL << 26),
   OPTS_TYPE_HASH_COPY         = (1ULL << 28),
   OPTS_TYPE_HASH_SPLIT        = (1ULL << 29),
-  OPTS_TYPE_LOOP_EXTENDED     = (1ULL << 30), // a kernel which is called each time normal _loop kernel finished.
+  OPTS_TYPE_LOOP_PREPARE      = (1ULL << 30), // a kernel which is called each time before _loop kernel started.
+                                              // like a hook12 kernel but without extra buffers.
+  OPTS_TYPE_LOOP_EXTENDED     = (1ULL << 31), // a kernel which is called each time normal _loop kernel finished.
                                               // but unlike a hook kernel this kernel is called for every _loop iteration offset
-  OPTS_TYPE_HOOK12            = (1ULL << 31),
-  OPTS_TYPE_HOOK23            = (1ULL << 32),
-  OPTS_TYPE_INIT2             = (1ULL << 33),
-  OPTS_TYPE_LOOP2             = (1ULL << 34),
-  OPTS_TYPE_AUX1              = (1ULL << 35),
-  OPTS_TYPE_AUX2              = (1ULL << 36),
-  OPTS_TYPE_AUX3              = (1ULL << 37),
-  OPTS_TYPE_AUX4              = (1ULL << 38),
-  OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 39),
-  OPTS_TYPE_PT_ADD06          = (1ULL << 41),
-  OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 42),
-  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 43), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
-  OPTS_TYPE_TM_KERNEL         = (1ULL << 44),
-  OPTS_TYPE_SUGGEST_KG        = (1ULL << 45), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
-  OPTS_TYPE_COPY_TMPS         = (1ULL << 46), // if we want to use data from tmps buffer (for example get the PMK in WPA)
-  OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 47), // sometimes the password should not be printed to potfile
-  OPTS_TYPE_DYNAMIC_SHARED    = (1ULL << 48), // use dynamic shared memory (note: needs special kernel changes)
-  OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 49), // some algos use JiT in combinations with a salt or create too much startup time
+  OPTS_TYPE_HOOK12            = (1ULL << 32),
+  OPTS_TYPE_HOOK23            = (1ULL << 33),
+  OPTS_TYPE_INIT2             = (1ULL << 34),
+  OPTS_TYPE_LOOP2_PREPARE     = (1ULL << 35), // same as OPTS_TYPE_LOOP_PREPARE but for loop2 kernel
+  OPTS_TYPE_LOOP2             = (1ULL << 36),
+  OPTS_TYPE_AUX1              = (1ULL << 37),
+  OPTS_TYPE_AUX2              = (1ULL << 38),
+  OPTS_TYPE_AUX3              = (1ULL << 39),
+  OPTS_TYPE_AUX4              = (1ULL << 40),
+  OPTS_TYPE_BINARY_HASHFILE   = (1ULL << 41),
+  OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
+                              = (1ULL << 42), // this allows us to not enforce the use of a binary file. requires OPTS_TYPE_BINARY_HASHFILE set to be effective.
+  OPTS_TYPE_PT_ADD06          = (1ULL << 43),
+  OPTS_TYPE_KEYBOARD_MAPPING  = (1ULL << 44),
+  OPTS_TYPE_DEEP_COMP_KERNEL  = (1ULL << 45), // if we have to iterate through each hash inside the comp kernel, for example if each hash has to be decrypted separately
+  OPTS_TYPE_TM_KERNEL         = (1ULL << 46),
+  OPTS_TYPE_SUGGEST_KG        = (1ULL << 47), // suggest keep guessing for modules the user maybe wants to use --keep-guessing
+  OPTS_TYPE_COPY_TMPS         = (1ULL << 48), // if we want to use data from tmps buffer (for example get the PMK in WPA)
+  OPTS_TYPE_POTFILE_NOPASS    = (1ULL << 49), // sometimes the password should not be printed to potfile
+  OPTS_TYPE_DYNAMIC_SHARED    = (1ULL << 50), // use dynamic shared memory (note: needs special kernel changes)
+  OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 51), // some algos use JiT in combinations with a salt or create too much startup time
+  OPTS_TYPE_MP_MULTI_DISABLE  = (1ULL << 52), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
+  OPTS_TYPE_NATIVE_THREADS    = (1ULL << 53), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
+  OPTS_TYPE_POST_AMP_UTF16LE  = (1ULL << 54), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
+  OPTS_TYPE_AUTODETECT_DISABLE = (1ULL << 55), // skip autodetect engine
 
 } opts_type_t;
 
@@ -541,6 +557,10 @@ typedef enum parser_rc
   PARSER_BLOCK_SIZE           = -39,
   PARSER_CIPHER               = -40,
   PARSER_FILE_SIZE            = -41,
+  PARSER_IV_LENGTH            = -42,
+  PARSER_CT_LENGTH            = -43,
+  PARSER_CRYPTOAPI_KERNELTYPE = -44,
+  PARSER_CRYPTOAPI_KEYSIZE    = -45,
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 
@@ -578,6 +598,7 @@ typedef enum user_options_defaults
 {
   ADVICE_DISABLE           = false,
   ATTACK_MODE              = ATTACK_MODE_STRAIGHT,
+  AUTODETECT               = false,
   BENCHMARK_ALL            = false,
   BENCHMARK                = false,
   BITMAP_MAX               = 18,
@@ -590,16 +611,21 @@ typedef enum user_options_defaults
   BRAIN_SESSION            = 0,
   #endif
   DEBUG_MODE               = 0,
-  EXAMPLE_HASHES           = false,
   FORCE                    = false,
   HWMON_DISABLE            = false,
+  #if defined (__APPLE__)
+  HWMON_TEMP_ABORT         = 100,
+  #else
   HWMON_TEMP_ABORT         = 90,
+  #endif
+  HASH_INFO                = false,
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
   HEX_SALT                 = false,
   HEX_WORDLIST             = false,
   HOOK_THREADS             = 0,
+  IDENTIFY                 = false,
   INCREMENT                = false,
   INCREMENT_MAX            = PW_MAX,
   INCREMENT_MIN            = 1,
@@ -695,7 +721,7 @@ typedef enum user_options_map
   IDX_DEBUG_MODE                = 0xff11,
   IDX_ENCODING_FROM             = 0xff12,
   IDX_ENCODING_TO               = 0xff13,
-  IDX_EXAMPLE_HASHES            = 0xff14,
+  IDX_HASH_INFO                 = 0xff14,
   IDX_FORCE                     = 0xff15,
   IDX_HWMON_DISABLE             = 0xff16,
   IDX_HWMON_TEMP_ABORT          = 0xff17,
@@ -706,73 +732,74 @@ typedef enum user_options_map
   IDX_HEX_SALT                  = 0xff1a,
   IDX_HEX_WORDLIST              = 0xff1b,
   IDX_HOOK_THREADS              = 0xff1c,
+  IDX_IDENTIFY                  = 0xff1d,
   IDX_INCREMENT                 = 'i',
-  IDX_INCREMENT_MAX             = 0xff1d,
-  IDX_INCREMENT_MIN             = 0xff1e,
-  IDX_INDUCTION_DIR             = 0xff1f,
-  IDX_KEEP_GUESSING             = 0xff20,
+  IDX_INCREMENT_MAX             = 0xff1e,
+  IDX_INCREMENT_MIN             = 0xff1f,
+  IDX_INDUCTION_DIR             = 0xff20,
+  IDX_KEEP_GUESSING             = 0xff21,
   IDX_KERNEL_ACCEL              = 'n',
   IDX_KERNEL_LOOPS              = 'u',
   IDX_KERNEL_THREADS            = 'T',
-  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff21,
-  IDX_KEYSPACE                  = 0xff22,
-  IDX_LEFT                      = 0xff23,
+  IDX_KEYBOARD_LAYOUT_MAPPING   = 0xff22,
+  IDX_KEYSPACE                  = 0xff23,
+  IDX_LEFT                      = 0xff24,
   IDX_LIMIT                     = 'l',
-  IDX_LOGFILE_DISABLE           = 0xff24,
-  IDX_LOOPBACK                  = 0xff25,
-  IDX_MACHINE_READABLE          = 0xff26,
-  IDX_MARKOV_CLASSIC            = 0xff27,
-  IDX_MARKOV_DISABLE            = 0xff28,
-  IDX_MARKOV_HCSTAT2            = 0xff29,
+  IDX_LOGFILE_DISABLE           = 0xff25,
+  IDX_LOOPBACK                  = 0xff26,
+  IDX_MACHINE_READABLE          = 0xff27,
+  IDX_MARKOV_CLASSIC            = 0xff28,
+  IDX_MARKOV_DISABLE            = 0xff29,
+  IDX_MARKOV_HCSTAT2            = 0xff2a,
   IDX_MARKOV_THRESHOLD          = 't',
-  IDX_NONCE_ERROR_CORRECTIONS   = 0xff2a,
+  IDX_NONCE_ERROR_CORRECTIONS   = 0xff2b,
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
-  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff2b,
-  IDX_OUTFILE_CHECK_DIR         = 0xff2c,
-  IDX_OUTFILE_CHECK_TIMER       = 0xff2d,
-  IDX_OUTFILE_FORMAT            = 0xff2e,
+  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff2c,
+  IDX_OUTFILE_CHECK_DIR         = 0xff2d,
+  IDX_OUTFILE_CHECK_TIMER       = 0xff2e,
+  IDX_OUTFILE_FORMAT            = 0xff2f,
   IDX_OUTFILE                   = 'o',
-  IDX_POTFILE_DISABLE           = 0xff2f,
-  IDX_POTFILE_PATH              = 0xff30,
-  IDX_PROGRESS_ONLY             = 0xff31,
-  IDX_QUIET                     = 0xff32,
-  IDX_REMOVE                    = 0xff33,
-  IDX_REMOVE_TIMER              = 0xff34,
-  IDX_RESTORE                   = 0xff35,
-  IDX_RESTORE_DISABLE           = 0xff36,
-  IDX_RESTORE_FILE_PATH         = 0xff37,
+  IDX_POTFILE_DISABLE           = 0xff30,
+  IDX_POTFILE_PATH              = 0xff31,
+  IDX_PROGRESS_ONLY             = 0xff32,
+  IDX_QUIET                     = 0xff33,
+  IDX_REMOVE                    = 0xff34,
+  IDX_REMOVE_TIMER              = 0xff35,
+  IDX_RESTORE                   = 0xff36,
+  IDX_RESTORE_DISABLE           = 0xff37,
+  IDX_RESTORE_FILE_PATH         = 0xff38,
   IDX_RP_FILE                   = 'r',
-  IDX_RP_GEN_FUNC_MAX           = 0xff38,
-  IDX_RP_GEN_FUNC_MIN           = 0xff39,
+  IDX_RP_GEN_FUNC_MAX           = 0xff39,
+  IDX_RP_GEN_FUNC_MIN           = 0xff3a,
   IDX_RP_GEN                    = 'g',
-  IDX_RP_GEN_SEED               = 0xff3a,
+  IDX_RP_GEN_SEED               = 0xff3b,
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
-  IDX_RUNTIME                   = 0xff3b,
-  IDX_SCRYPT_TMTO               = 0xff3c,
+  IDX_RUNTIME                   = 0xff3c,
+  IDX_SCRYPT_TMTO               = 0xff3d,
   IDX_SEGMENT_SIZE              = 'c',
-  IDX_SELF_TEST_DISABLE         = 0xff3d,
+  IDX_SELF_TEST_DISABLE         = 0xff3e,
   IDX_SEPARATOR                 = 'p',
-  IDX_SESSION                   = 0xff3e,
-  IDX_SHOW                      = 0xff3f,
+  IDX_SESSION                   = 0xff3f,
+  IDX_SHOW                      = 0xff40,
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
-  IDX_SPEED_ONLY                = 0xff40,
-  IDX_SPIN_DAMP                 = 0xff41,
-  IDX_STATUS                    = 0xff42,
-  IDX_STATUS_JSON               = 0xff43,
-  IDX_STATUS_TIMER              = 0xff44,
-  IDX_STDOUT_FLAG               = 0xff45,
-  IDX_STDIN_TIMEOUT_ABORT       = 0xff46,
-  IDX_TRUECRYPT_KEYFILES        = 0xff47,
-  IDX_USERNAME                  = 0xff48,
-  IDX_VERACRYPT_KEYFILES        = 0xff49,
-  IDX_VERACRYPT_PIM_START       = 0xff4a,
-  IDX_VERACRYPT_PIM_STOP        = 0xff4b,
+  IDX_SPEED_ONLY                = 0xff41,
+  IDX_SPIN_DAMP                 = 0xff42,
+  IDX_STATUS                    = 0xff43,
+  IDX_STATUS_JSON               = 0xff44,
+  IDX_STATUS_TIMER              = 0xff45,
+  IDX_STDOUT_FLAG               = 0xff46,
+  IDX_STDIN_TIMEOUT_ABORT       = 0xff47,
+  IDX_TRUECRYPT_KEYFILES        = 0xff48,
+  IDX_USERNAME                  = 0xff49,
+  IDX_VERACRYPT_KEYFILES        = 0xff4a,
+  IDX_VERACRYPT_PIM_START       = 0xff4b,
+  IDX_VERACRYPT_PIM_STOP        = 0xff4c,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff4c,
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff4d,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -923,7 +950,7 @@ typedef struct hashes
 
 } hashes_t;
 
-struct hashconfig
+typedef struct hashconfig
 {
   char  separator;
 
@@ -947,6 +974,7 @@ struct hashconfig
   // sizes have to be size_t
 
   u64   esalt_size;
+  u64   hook_extra_param_size;
   u64   hook_salt_size;
   u64   tmp_size;
   u64   extra_tmp_size;
@@ -996,9 +1024,7 @@ struct hashconfig
   bool forced_jit_compile;
 
   u32 pwdump_column;
-};
-
-typedef struct hashconfig hashconfig_t;
+} hashconfig_t;
 
 typedef struct pw_pre
 {
@@ -1086,12 +1112,14 @@ typedef struct hc_device_param
 
   u32     kernel_wgs1;
   u32     kernel_wgs12;
+  u32     kernel_wgs2p;
   u32     kernel_wgs2;
   u32     kernel_wgs2e;
   u32     kernel_wgs23;
   u32     kernel_wgs3;
   u32     kernel_wgs4;
   u32     kernel_wgs_init2;
+  u32     kernel_wgs_loop2p;
   u32     kernel_wgs_loop2;
   u32     kernel_wgs_mp;
   u32     kernel_wgs_mp_l;
@@ -1100,6 +1128,7 @@ typedef struct hc_device_param
   u32     kernel_wgs_tm;
   u32     kernel_wgs_memset;
   u32     kernel_wgs_atinit;
+  u32     kernel_wgs_utf8toutf16le;
   u32     kernel_wgs_decompress;
   u32     kernel_wgs_aux1;
   u32     kernel_wgs_aux2;
@@ -1108,12 +1137,14 @@ typedef struct hc_device_param
 
   u32     kernel_preferred_wgs_multiple1;
   u32     kernel_preferred_wgs_multiple12;
+  u32     kernel_preferred_wgs_multiple2p;
   u32     kernel_preferred_wgs_multiple2;
   u32     kernel_preferred_wgs_multiple2e;
   u32     kernel_preferred_wgs_multiple23;
   u32     kernel_preferred_wgs_multiple3;
   u32     kernel_preferred_wgs_multiple4;
   u32     kernel_preferred_wgs_multiple_init2;
+  u32     kernel_preferred_wgs_multiple_loop2p;
   u32     kernel_preferred_wgs_multiple_loop2;
   u32     kernel_preferred_wgs_multiple_mp;
   u32     kernel_preferred_wgs_multiple_mp_l;
@@ -1122,6 +1153,7 @@ typedef struct hc_device_param
   u32     kernel_preferred_wgs_multiple_tm;
   u32     kernel_preferred_wgs_multiple_memset;
   u32     kernel_preferred_wgs_multiple_atinit;
+  u32     kernel_preferred_wgs_multiple_utf8toutf16le;
   u32     kernel_preferred_wgs_multiple_decompress;
   u32     kernel_preferred_wgs_multiple_aux1;
   u32     kernel_preferred_wgs_multiple_aux2;
@@ -1130,12 +1162,14 @@ typedef struct hc_device_param
 
   u64     kernel_local_mem_size1;
   u64     kernel_local_mem_size12;
+  u64     kernel_local_mem_size2p;
   u64     kernel_local_mem_size2;
   u64     kernel_local_mem_size2e;
   u64     kernel_local_mem_size23;
   u64     kernel_local_mem_size3;
   u64     kernel_local_mem_size4;
   u64     kernel_local_mem_size_init2;
+  u64     kernel_local_mem_size_loop2p;
   u64     kernel_local_mem_size_loop2;
   u64     kernel_local_mem_size_mp;
   u64     kernel_local_mem_size_mp_l;
@@ -1144,6 +1178,7 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_tm;
   u64     kernel_local_mem_size_memset;
   u64     kernel_local_mem_size_atinit;
+  u64     kernel_local_mem_size_utf8toutf16le;
   u64     kernel_local_mem_size_decompress;
   u64     kernel_local_mem_size_aux1;
   u64     kernel_local_mem_size_aux2;
@@ -1152,12 +1187,14 @@ typedef struct hc_device_param
 
   u64     kernel_dynamic_local_mem_size1;
   u64     kernel_dynamic_local_mem_size12;
+  u64     kernel_dynamic_local_mem_size2p;
   u64     kernel_dynamic_local_mem_size2;
   u64     kernel_dynamic_local_mem_size2e;
   u64     kernel_dynamic_local_mem_size23;
   u64     kernel_dynamic_local_mem_size3;
   u64     kernel_dynamic_local_mem_size4;
   u64     kernel_dynamic_local_mem_size_init2;
+  u64     kernel_dynamic_local_mem_size_loop2p;
   u64     kernel_dynamic_local_mem_size_loop2;
   u64     kernel_dynamic_local_mem_size_mp;
   u64     kernel_dynamic_local_mem_size_mp_l;
@@ -1166,6 +1203,7 @@ typedef struct hc_device_param
   u64     kernel_dynamic_local_mem_size_tm;
   u64     kernel_dynamic_local_mem_size_memset;
   u64     kernel_dynamic_local_mem_size_atinit;
+  u64     kernel_dynamic_local_mem_size_utf8toutf16le;
   u64     kernel_dynamic_local_mem_size_decompress;
   u64     kernel_dynamic_local_mem_size_aux1;
   u64     kernel_dynamic_local_mem_size_aux2;
@@ -1265,11 +1303,13 @@ typedef struct hc_device_param
   // workaround cpu spinning
 
   double  exec_us_prev1[EXPECTED_ITERATIONS];
+  double  exec_us_prev2p[EXPECTED_ITERATIONS];
   double  exec_us_prev2[EXPECTED_ITERATIONS];
   double  exec_us_prev2e[EXPECTED_ITERATIONS];
   double  exec_us_prev3[EXPECTED_ITERATIONS];
   double  exec_us_prev4[EXPECTED_ITERATIONS];
   double  exec_us_prev_init2[EXPECTED_ITERATIONS];
+  double  exec_us_prev_loop2p[EXPECTED_ITERATIONS];
   double  exec_us_prev_loop2[EXPECTED_ITERATIONS];
   double  exec_us_prev_aux1[EXPECTED_ITERATIONS];
   double  exec_us_prev_aux2[EXPECTED_ITERATIONS];
@@ -1324,6 +1364,7 @@ typedef struct hc_device_param
   void   *kernel_params_tm[PARAMCNT];
   void   *kernel_params_memset[PARAMCNT];
   void   *kernel_params_atinit[PARAMCNT];
+  void   *kernel_params_utf8toutf16le[PARAMCNT];
   void   *kernel_params_decompress[PARAMCNT];
 
   u32     kernel_params_buf32[PARAMCNT];
@@ -1346,6 +1387,9 @@ typedef struct hc_device_param
 
   u32     kernel_params_atinit_buf32[PARAMCNT];
   u64     kernel_params_atinit_buf64[PARAMCNT];
+
+  u32     kernel_params_utf8toutf16le_buf32[PARAMCNT];
+  u64     kernel_params_utf8toutf16le_buf64[PARAMCNT];
 
   u32     kernel_params_decompress_buf32[PARAMCNT];
   u64     kernel_params_decompress_buf64[PARAMCNT];
@@ -1370,12 +1414,14 @@ typedef struct hc_device_param
 
   CUfunction        cuda_function1;
   CUfunction        cuda_function12;
+  CUfunction        cuda_function2p;
   CUfunction        cuda_function2;
   CUfunction        cuda_function2e;
   CUfunction        cuda_function23;
   CUfunction        cuda_function3;
   CUfunction        cuda_function4;
   CUfunction        cuda_function_init2;
+  CUfunction        cuda_function_loop2p;
   CUfunction        cuda_function_loop2;
   CUfunction        cuda_function_mp;
   CUfunction        cuda_function_mp_l;
@@ -1384,6 +1430,7 @@ typedef struct hc_device_param
   CUfunction        cuda_function_tm;
   CUfunction        cuda_function_memset;
   CUfunction        cuda_function_atinit;
+  CUfunction        cuda_function_utf8toutf16le;
   CUfunction        cuda_function_decompress;
   CUfunction        cuda_function_aux1;
   CUfunction        cuda_function_aux2;
@@ -1394,8 +1441,6 @@ typedef struct hc_device_param
   CUdeviceptr       cuda_d_pws_amp_buf;
   CUdeviceptr       cuda_d_pws_comp_buf;
   CUdeviceptr       cuda_d_pws_idx;
-  CUdeviceptr       cuda_d_words_buf_l;
-  CUdeviceptr       cuda_d_words_buf_r;
   CUdeviceptr       cuda_d_rules;
   CUdeviceptr       cuda_d_rules_c;
   CUdeviceptr       cuda_d_combs;
@@ -1454,12 +1499,14 @@ typedef struct hc_device_param
 
   cl_kernel         opencl_kernel1;
   cl_kernel         opencl_kernel12;
+  cl_kernel         opencl_kernel2p;
   cl_kernel         opencl_kernel2;
   cl_kernel         opencl_kernel2e;
   cl_kernel         opencl_kernel23;
   cl_kernel         opencl_kernel3;
   cl_kernel         opencl_kernel4;
   cl_kernel         opencl_kernel_init2;
+  cl_kernel         opencl_kernel_loop2p;
   cl_kernel         opencl_kernel_loop2;
   cl_kernel         opencl_kernel_mp;
   cl_kernel         opencl_kernel_mp_l;
@@ -1468,6 +1515,7 @@ typedef struct hc_device_param
   cl_kernel         opencl_kernel_tm;
   cl_kernel         opencl_kernel_memset;
   cl_kernel         opencl_kernel_atinit;
+  cl_kernel         opencl_kernel_utf8toutf16le;
   cl_kernel         opencl_kernel_decompress;
   cl_kernel         opencl_kernel_aux1;
   cl_kernel         opencl_kernel_aux2;
@@ -1478,8 +1526,6 @@ typedef struct hc_device_param
   cl_mem            opencl_d_pws_amp_buf;
   cl_mem            opencl_d_pws_comp_buf;
   cl_mem            opencl_d_pws_idx;
-  cl_mem            opencl_d_words_buf_l;
-  cl_mem            opencl_d_words_buf_r;
   cl_mem            opencl_d_rules;
   cl_mem            opencl_d_rules_c;
   cl_mem            opencl_d_combs;
@@ -1549,12 +1595,16 @@ typedef struct backend_ctx
   bool                need_nvml;
   bool                need_nvapi;
   bool                need_sysfs;
+  bool                need_iokit;
 
   int                 comptime;
 
   int                 force_jit_compilation;
 
   // cuda
+
+  int                 rc_cuda_init;
+  int                 rc_nvrtc_init;
 
   int                 nvrtc_driver_version;
   int                 cuda_driver_version;
@@ -1589,6 +1639,7 @@ typedef enum kernel_workload
 #include "ext_nvapi.h"
 #include "ext_nvml.h"
 #include "ext_sysfs.h"
+#include "ext_iokit.h"
 
 typedef struct hm_attrs
 {
@@ -1596,6 +1647,7 @@ typedef struct hm_attrs
   HM_ADAPTER_NVML    nvml;
   HM_ADAPTER_NVAPI   nvapi;
   HM_ADAPTER_SYSFS   sysfs;
+  HM_ADAPTER_IOKIT   iokit;
 
   int od_version;
 
@@ -1620,6 +1672,7 @@ typedef struct hwmon_ctx
   void *hm_nvml;
   void *hm_nvapi;
   void *hm_sysfs;
+  void *hm_iokit;
 
   hm_attrs_t *hm_device;
 
@@ -1901,6 +1954,7 @@ typedef struct user_options
   char       **hc_argv;
 
   bool         attack_mode_chgd;
+  bool         autodetect;
   #ifdef WITH_BRAIN
   bool         brain_host_chgd;
   bool         brain_port_chgd;
@@ -1909,6 +1963,7 @@ typedef struct user_options
   #endif
   bool         hash_mode_chgd;
   bool         hccapx_message_pair_chgd;
+  bool         identify;
   bool         increment_max_chgd;
   bool         increment_min_chgd;
   bool         kernel_accel_chgd;
@@ -1925,6 +1980,7 @@ typedef struct user_options
   bool         workload_profile_chgd;
   bool         skip_chgd;
   bool         limit_chgd;
+  bool         scrypt_tmto_chgd;
 
   bool         advice_disable;
   bool         benchmark;
@@ -1933,9 +1989,9 @@ typedef struct user_options
   bool         brain_client;
   bool         brain_server;
   #endif
-  bool         example_hashes;
   bool         force;
   bool         hwmon_disable;
+  bool         hash_info;
   bool         hex_charset;
   bool         hex_salt;
   bool         hex_wordlist;
@@ -2064,6 +2120,13 @@ typedef struct user_options_extra
 
 } user_options_extra_t;
 
+typedef struct brain_ctx
+{
+  bool support;     // general brain support compiled in (server or client)
+  bool enabled;     // brain support required by user request on command line
+
+} brain_ctx_t;
+
 typedef struct bitmap_ctx
 {
   bool enabled;
@@ -2091,6 +2154,7 @@ typedef struct folder_config
   char *cwd;
   char *install_dir;
   char *profile_dir;
+  char *cache_dir;
   char *session_dir;
   char *shared_dir;
   char *cpath_real;
@@ -2196,6 +2260,9 @@ typedef struct device_info
   double  exec_msec_dev;
   char   *speed_sec_dev;
   char   *guess_candidates_dev;
+  #if defined(__APPLE__)
+  char   *hwmon_fan_dev;
+  #endif
   char   *hwmon_dev;
   int     corespeed_dev;
   int     memoryspeed_dev;
@@ -2323,6 +2390,7 @@ typedef struct status_ctx
   bool shutdown_outer;
 
   bool checkpoint_shutdown;
+  bool finish_shutdown;
 
   hc_thread_mutex_t mux_dispatcher;
   hc_thread_mutex_t mux_counter;
@@ -2440,6 +2508,8 @@ typedef struct module_ctx
 
   MODULE_INIT module_init;
 
+  void      **hook_extra_params; // free for module to use (for instance: library handles)
+
   u32         (*module_attack_exec)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   void       *(*module_benchmark_esalt)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   void       *(*module_benchmark_hook_salt)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -2505,8 +2575,12 @@ typedef struct module_ctx
   u32         (*module_deep_comp_kernel)        (const hashes_t *, const u32, const u32);
   int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);
 
-  void        (*module_hook12)                  (hc_device_param_t *, const void *, const u32, const u64);
-  void        (*module_hook23)                  (hc_device_param_t *, const void *, const u32, const u64);
+  u64         (*module_hook_extra_param_size)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_hook_extra_param_init)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const folder_config_t *, const backend_ctx_t *, void *);
+  bool        (*module_hook_extra_param_term)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const folder_config_t *, const backend_ctx_t *, void *);
+
+  void        (*module_hook12)                  (hc_device_param_t *, const void *, const void *, const u32, const u64);
+  void        (*module_hook23)                  (hc_device_param_t *, const void *, const void *, const u32, const u64);
 
   int         (*module_build_plain_postprocess) (const hashconfig_t *, const hashes_t *, const void *, const u32 *, const size_t, const int, u32 *, const size_t);
 
@@ -2518,6 +2592,7 @@ typedef struct module_ctx
 
 typedef struct hashcat_ctx
 {
+  brain_ctx_t           *brain_ctx;
   bitmap_ctx_t          *bitmap_ctx;
   combinator_ctx_t      *combinator_ctx;
   cpt_ctx_t             *cpt_ctx;
@@ -2569,6 +2644,7 @@ typedef struct hook_thread_param
 
   hc_device_param_t *device_param;
 
+  void *hook_extra_param;
   void *hook_salts_buf;
 
   u32 salt_pos;
@@ -2601,8 +2677,6 @@ typedef struct token
 
 } token_t;
 
-#endif // _TYPES_H
-
 /**
  * hash category is relevant in usage.c (--help screen)
  */
@@ -2630,9 +2704,13 @@ typedef enum hash_category
   HASH_CATEGORY_PLAIN                   = 18,
   HASH_CATEGORY_FRAMEWORK               = 19,
   HASH_CATEGORY_PRIVATE_KEY             = 20,
-
+  HASH_CATEGORY_IMS                     = 21,
+  HASH_CATEGORY_CRYPTOCURRENCY_WALLET   = 22,
+  HASH_CATEGORY_FBE                     = 23
 } hash_category_t;
 
 // hash specific
 
 typedef aes_ctx AES_KEY;
+
+#endif // _TYPES_H

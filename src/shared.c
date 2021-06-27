@@ -57,6 +57,8 @@ static const char *PA_038 = "Invalid key size";
 static const char *PA_039 = "Invalid block size";
 static const char *PA_040 = "Invalid or unsupported cipher";
 static const char *PA_041 = "Invalid filesize";
+static const char *PA_042 = "IV length exception";
+static const char *PA_043 = "CT length exception";
 static const char *PA_255 = "Unknown error";
 
 static const char *OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -95,12 +97,15 @@ static const char *HASH_CATEGORY_OS_STR                     = "Operating System"
 static const char *HASH_CATEGORY_EAS_STR                    = "Enterprise Application Software (EAS)";
 static const char *HASH_CATEGORY_ARCHIVE_STR                = "Archives";
 static const char *HASH_CATEGORY_FDE_STR                    = "Full-Disk Encryption (FDE)";
+static const char *HASH_CATEGORY_FBE_STR                    = "File-Based Encryption (FBE)";
 static const char *HASH_CATEGORY_DOCUMENTS_STR              = "Documents";
 static const char *HASH_CATEGORY_PASSWORD_MANAGER_STR       = "Password Managers";
 static const char *HASH_CATEGORY_OTP_STR                    = "One-Time Passwords";
 static const char *HASH_CATEGORY_PLAIN_STR                  = "Plaintext";
 static const char *HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
 static const char *HASH_CATEGORY_PRIVATE_KEY_STR            = "Private Key";
+static const char *HASH_CATEGORY_IMS_STR                    = "Instant Messaging Service";
+static const char *HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR  = "Cryptocurrency Wallet";
 
 int sort_by_string_sized (const void *p1, const void *p2)
 {
@@ -520,7 +525,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
       putenv ((char *) "DISPLAY=:0");
   }
 
-  /*
+  #if defined (DEBUG)
   if (getenv ("OCL_CODE_CACHE_ENABLE") == NULL)
     putenv ((char *) "OCL_CODE_CACHE_ENABLE=0");
 
@@ -529,7 +534,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
 
   if (getenv ("POCL_KERNEL_CACHE") == NULL)
     putenv ((char *) "POCL_KERNEL_CACHE=0");
-  */
+  #endif
 
   if (getenv ("TMPDIR") == NULL)
   {
@@ -542,8 +547,10 @@ void setup_environment_variables (const folder_config_t *folder_config)
     // we can't free tmpdir at this point!
   }
 
+  /*
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
     putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");
+  */
 
   #if defined (__CYGWIN__)
   cygwin_internal (CW_SYNC_WINENV);
@@ -946,12 +953,15 @@ const char *strhashcategory (const u32 hash_category)
     case HASH_CATEGORY_EAS:                     return HASH_CATEGORY_EAS_STR;
     case HASH_CATEGORY_ARCHIVE:                 return HASH_CATEGORY_ARCHIVE_STR;
     case HASH_CATEGORY_FDE:                     return HASH_CATEGORY_FDE_STR;
+    case HASH_CATEGORY_FBE:                     return HASH_CATEGORY_FBE_STR;
     case HASH_CATEGORY_DOCUMENTS:               return HASH_CATEGORY_DOCUMENTS_STR;
     case HASH_CATEGORY_PASSWORD_MANAGER:        return HASH_CATEGORY_PASSWORD_MANAGER_STR;
     case HASH_CATEGORY_OTP:                     return HASH_CATEGORY_OTP_STR;
     case HASH_CATEGORY_PLAIN:                   return HASH_CATEGORY_PLAIN_STR;
     case HASH_CATEGORY_FRAMEWORK:               return HASH_CATEGORY_FRAMEWORK_STR;
     case HASH_CATEGORY_PRIVATE_KEY:             return HASH_CATEGORY_PRIVATE_KEY_STR;
+    case HASH_CATEGORY_IMS:                     return HASH_CATEGORY_IMS_STR;
+    case HASH_CATEGORY_CRYPTOCURRENCY_WALLET:   return HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR;
   }
 
   return NULL;
@@ -1032,6 +1042,8 @@ const char *strparser (const u32 parser_status)
     case PARSER_BLOCK_SIZE:           return PA_039;
     case PARSER_CIPHER:               return PA_040;
     case PARSER_FILE_SIZE:            return PA_041;
+    case PARSER_IV_LENGTH:            return PA_042;
+    case PARSER_CT_LENGTH:            return PA_043;
   }
 
   return PA_255;
